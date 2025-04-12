@@ -13,14 +13,20 @@ namespace LargeFileSorter.Common
             String = s;
         }
 
-        public FileLine(string input)
+        public static FileLine? Parse(string input)
         {
+            if (string.IsNullOrWhiteSpace(input)) return null;
+
             Match match = Regex.Match(input, @"(?<number>\d*)\.\s(?<string>.*)");
             if (match.Success)
             {
-                Number = Convert.ToInt64(match.Groups["number"].Value);
-                String = match.Groups["string"].Value;
+                long number = Convert.ToInt64(match.Groups["number"].Value);
+                string str = match.Groups["string"].Value;
+
+                return new FileLine(number, str);
             }
+
+            return null;
         }
 
         public override string ToString()

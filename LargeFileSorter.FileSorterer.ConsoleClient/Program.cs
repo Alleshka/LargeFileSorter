@@ -1,4 +1,5 @@
 ﻿using CommandLine;
+using System.Diagnostics;
 
 namespace LargeFileSorter.FileSorterer.ConsoleClient
 {
@@ -18,8 +19,10 @@ namespace LargeFileSorter.FileSorterer.ConsoleClient
                 options.OutputDir = Environment.CurrentDirectory;
             }
 
+            Stopwatch sw = Stopwatch.StartNew();
             var sorterer = new SimpleFileSorterer();
             sorterer.SortFileAsync(options.Input, options.OutputDir, options.OutputFile).GetAwaiter().GetResult();
+            Console.WriteLine(sw.ElapsedMilliseconds);
         }
     }
 }

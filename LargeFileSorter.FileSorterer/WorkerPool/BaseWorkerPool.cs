@@ -17,19 +17,6 @@
             _cts = cts ?? new CancellationTokenSource();
         }
 
-        protected void StartWorker()
-        {
-            Interlocked.Increment(ref _activeThreads);
-            var task = Task.Run(() => WorkerLoop());
-
-            lock (_workers)
-            {
-                _workers.AddLast(task);
-            }
-        }
-
-        protected abstract void WorkerLoop();
-
         public void Stop()
         {
             StopAsync();
@@ -42,12 +29,25 @@
 
             Task[] runningTasks;
 
-            lock(_workers)
+            lock (_workers)
             {
                 runningTasks = _workers.ToArray();
             }
 
             await Task.WhenAll(runningTasks);
         }
+
+        protected void StartWorker()
+        {
+            Interlocked.Increment(ref _activeThreads);
+            var task = Task.Run(() => WorkerLoop());
+
+            lock (_workers)
+            {
+                _workers.AddLast(task);
+            }
+        }
+
+        protected abstract void WorkerLoop();
     }
 }
