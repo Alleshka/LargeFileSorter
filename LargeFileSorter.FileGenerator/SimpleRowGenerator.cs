@@ -13,7 +13,7 @@ namespace LargeFileSorter.FileGenerator
 
         public FileLine GenerateRow()
         {
-            int number = _random.Value.Next();
+            int number = _random.Value.Next(1, 10000);
             string phrase = _stringPool[_random.Value.Next(_stringPool.Length)];
             return new FileLine(number, phrase);
         }
