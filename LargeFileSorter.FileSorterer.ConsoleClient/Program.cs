@@ -1,7 +1,6 @@
 ﻿using CommandLine;
-using System.Diagnostics;
 
-namespace LargeFileSorter.FileGenerator.ConsoleClient
+namespace LargeFileSorter.FileSorterer.ConsoleClient
 {
     internal class Program
     {
@@ -14,8 +13,13 @@ namespace LargeFileSorter.FileGenerator.ConsoleClient
 
         private static void Run(Options options)
         {
-            IFileGenerator fileGenerator = new TempFilesFileGenerator();
-            fileGenerator.GenerateFile(options.OutputDirectory, options.OutputFile, options.TargetSizeBytes);
+            if (string.IsNullOrEmpty(options.OutputDir))
+            {
+                options.OutputDir = Environment.CurrentDirectory;
+            }
+
+            var sorterer = new SimpleFileSorterer();
+            sorterer.SortFileAsync(options.Input, options.OutputDir, options.OutputFile).GetAwaiter().GetResult();
         }
     }
 }

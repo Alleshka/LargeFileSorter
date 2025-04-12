@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "LargeFileSorter.FileSorterer.ConsoleClient": {
+      "commandName": "Project",
+      "commandLineArgs": "\"H:\\Test\\largeFile.txt\" -d \"H:\\Test\""
+    }
+  }
+}

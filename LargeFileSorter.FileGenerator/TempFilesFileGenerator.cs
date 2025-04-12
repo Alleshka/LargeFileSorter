@@ -1,4 +1,4 @@
-﻿using System.IO;
+﻿using LargeFileSorter.Common;
 using System.Text;
 
 namespace LargeFileSorter.FileGenerator
@@ -6,9 +6,9 @@ namespace LargeFileSorter.FileGenerator
     public class TempFilesFileGenerator : IFileGenerator
     {
         private const int BufferSize = 65536;
-        private static Random _rand = new Random();
+        private IRowGenerator _rowGenerator = new SimpleRowGenerator();
 
-        public async Task GenerateFileAsync(string directory = "", string fileName = "largeFile.txt", long targetFileSizeBytes = 1024, int maxThreadsCount = 0)
+        public async void GenerateFile(string directory = "", string fileName = "largeFile.txt", long targetFileSizeBytes = 1024, int maxThreadsCount = 0)
         {
             if (maxThreadsCount <= 0 || maxThreadsCount >= Environment.ProcessorCount)
             {
@@ -40,10 +40,8 @@ namespace LargeFileSorter.FileGenerator
                     long written = 0;
                     while (written < chunkSize)
                     {
-                        int number = _rand.Next();
-                        string phrase = "hi mark";
-
-                        string line = $"{number}. {phrase}";
+                        FileLine row = _rowGenerator.GenerateRow();
+                        string line = row.ToString();
                         written += Encoding.UTF8.GetByteCount(line) + Environment.NewLine.Length;
                         writer.WriteLine(line);
                     }

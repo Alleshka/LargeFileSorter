@@ -23,7 +23,7 @@ namespace LargeFileSorter.FileGenerator.ConsoleClient
                 return 1024;
             }
 
-            Match match = Regex.Match(input.Trim(), @"^(?<size>\d*)(?<unit>\w*)$");
+            Match match = Regex.Match(input.Trim(), @"^(?<size>\d*\.*\d*)(?<unit>\w*)$");
 
             if (!match.Success) return 1024;
 
