@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "LargeFileSorter.FileGenerator.ConsoleClient": {
+      "commandName": "Project",
+      "commandLineArgs": "-s 2Gb -d \"H:\\Test\""
+    }
+  }
+}
