@@ -5,10 +5,10 @@ namespace LargeFileSorter.FileGenerator
 {
     public class TempFilesFileGenerator : IFileGenerator
     {
-        private const int BufferSize = 65536;
+        private int BufferSize = MemoryUtils.SmallBufferSize;
         private IRowGenerator _rowGenerator = new SimpleRowGenerator();
 
-        public async void GenerateFile(string directory = "", string fileName = "largeFile.txt", long targetFileSizeBytes = 1024, int maxThreadsCount = 0)
+        public void GenerateFile(string directory = "", string fileName = "largeFile.txt", long targetFileSizeBytes = 1024, int maxThreadsCount = 0)
         {
             if (maxThreadsCount <= 0 || maxThreadsCount >= Environment.ProcessorCount)
             {
@@ -26,7 +26,7 @@ namespace LargeFileSorter.FileGenerator
             tmpDir.Delete();
         }
 
-        private void GenerateTempFiles(DirectoryInfo tmpDir, long targetFileSizeBytes = 1024, int maxThreadsCount = 0)
+        private void GenerateTempFiles(DirectoryInfo tmpDir, long targetFileSizeBytes, int maxThreadsCount)
         {
             int maxFiles = Math.Min(32, maxThreadsCount * 4);
             long chunkSize = targetFileSizeBytes / maxFiles;

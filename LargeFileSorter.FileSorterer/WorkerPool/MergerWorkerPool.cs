@@ -42,6 +42,12 @@ namespace LargeFileSorter.FileSorterer.WorkerPool
             }
         }
 
+        public override async Task StopAsync()
+        {
+            await base.StopAsync();
+            ResultFile = _tasks.Dequeue();
+        }
+
         protected override void WorkerLoop()
         {
             int count = 0;
@@ -91,12 +97,6 @@ namespace LargeFileSorter.FileSorterer.WorkerPool
             {
                 Interlocked.Decrement(ref _activeThreads);
             }
-        }
-
-        public override async Task StopAsync()
-        {
-            await base.StopAsync();
-            ResultFile = _tasks.Dequeue();
         }
     }
 }

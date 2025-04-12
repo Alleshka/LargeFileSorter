@@ -9,9 +9,12 @@ namespace LargeFileSorter.FileSorterer
         private SorterWorkerPool _sorterWorker;
         private MergerWorkerPool _mergerWorker;
 
-        public async Task SortFileAsync(string input, string outputDir = "", string outputFile = "sortResult.txt")
+        public async Task SortFileAsync(string input, string outputDir = "", string outputFile = "sortResult.txt", long chunkSize = 0)
         {
-            int chunkSize = 64 * 1024 * 1024; // 
+            if (chunkSize <= 0)
+            {
+                chunkSize = MemoryUtils.LargeBufferSize * 2;
+            }
 
             var reader = Task.Run(() => ReadFile(input, chunkSize));
             string tmpDir = Path.Combine(outputDir);
@@ -28,9 +31,9 @@ namespace LargeFileSorter.FileSorterer
             _mergerWorker.ResultFile.MoveTo(oututPath, true);
         }
 
-        private void ReadFile(string inputFile, int chunkSize)
+        private void ReadFile(string inputFile, long chunkSize)
         {
-            int written = 0;
+            long written = 0;
 
             using (var reader = new StreamReader(inputFile))
             {
@@ -42,14 +45,18 @@ namespace LargeFileSorter.FileSorterer
                     line = line.Trim();
                     if (!string.IsNullOrWhiteSpace(line))
                     {
-                        lines.Add(new FileLine(line));
-                        written += Encoding.UTF8.GetByteCount(line) + Environment.NewLine.Length;
-
-                        if (written >= chunkSize)
+                        var fileLine = FileLine.Parse(line);
+                        if (fileLine != null)
                         {
-                            _sorterWorker.EnqueuTask(lines);
-                            lines = new List<FileLine>();
-                            written = 0;
+                            lines.Add(fileLine);
+                            written += Encoding.UTF8.GetByteCount(line) + Environment.NewLine.Length;
+
+                            if (written >= chunkSize)
+                            {
+                                _sorterWorker.EnqueuTask(lines);
+                                lines = new List<FileLine>();
+                                written = 0;
+                            }
                         }
                     }
                 }
@@ -57,7 +64,6 @@ namespace LargeFileSorter.FileSorterer
                 if (lines.Count > 0)
                 {
                     _sorterWorker.EnqueuTask(lines);
-                    lines = new List<FileLine>();
                     lines = null;
                 }
             }
@@ -65,11 +71,11 @@ namespace LargeFileSorter.FileSorterer
 
         private void SortChunk(string tmpDir, List<FileLine> chunk)
         {
-            chunk.Sort(new StringNumberAscFileLineComparer());
+            chunk.Sort(FileLineComparer.Default);
 
             string fileName = $"sorted-part-{Guid.NewGuid()}";
 
-            using (StreamWriter writer = new StreamWriter(Path.Combine(tmpDir, fileName), false, Encoding.UTF8))
+            using (StreamWriter writer = new StreamWriter(Path.Combine(tmpDir, fileName), false, Encoding.UTF8, MemoryUtils.SmallBufferSize))
             {
                 for (int i = 0; i < chunk.Count; i++)
                 {
@@ -82,22 +88,24 @@ namespace LargeFileSorter.FileSorterer
 
         private void MergeFiles(string tmpDir, FileInfo file1, FileInfo file2)
         {
+            int bufferSize = MemoryUtils.SmallBufferSize;
+
             string fileName = $"merged-part-{Guid.NewGuid()}";
             string outputFile = Path.Combine(tmpDir, fileName);
 
-            using (var reader1 = new StreamReader(file1.FullName))
+            using (var reader1 = new StreamReader(file1.FullName, Encoding.UTF8, true, bufferSize))
             {
-                using (var reader2 = new StreamReader(file2.FullName))
+                using (var reader2 = new StreamReader(file2.FullName, Encoding.UTF8, true, bufferSize))
                 {
-                    using (StreamWriter writer = new StreamWriter(outputFile, false, Encoding.UTF8))
+                    using (StreamWriter writer = new StreamWriter(outputFile, false, Encoding.UTF8, bufferSize))
                     {
                         string? line1 = reader1.ReadLine();
                         string? line2 = reader2.ReadLine();
 
                         while (line1 != null && line2 != null)
                         {
-                            FileLine l1 = new FileLine(line1);
-                            FileLine l2 = new FileLine(line1);
+                            FileLine l1 = FileLine.Parse(line1);
+                            FileLine l2 = FileLine.Parse(line2);
 
                             int result = FileLineComparer.Default.Compare(l1, l2);
                             if (result <= 0)
@@ -114,17 +122,25 @@ namespace LargeFileSorter.FileSorterer
 
                         if (line2 == null)
                         {
-                            while ((line1 = reader1.ReadLine()) != null)
+                            writer.WriteLine(line1);
+
+                            char[] buffer = new char[bufferSize];
+                            int charsRead;
+                            while ((charsRead = reader1.Read(buffer, 0, buffer.Length)) > 0)
                             {
-                                writer.WriteLine(line1);
+                                writer.Write(buffer, 0, charsRead);
                             }
                         }
 
                         if (line1 == null)
                         {
-                            while ((line2 = reader2.ReadLine()) != null)
+                            writer.WriteLine(line2);
+
+                            char[] buffer = new char[bufferSize];
+                            int charsRead;
+                            while ((charsRead = reader2.Read(buffer, 0, buffer.Length)) > 0)
                             {
-                                writer.WriteLine(line2);
+                                writer.Write(buffer, 0, charsRead);
                             }
                         }
                     }
