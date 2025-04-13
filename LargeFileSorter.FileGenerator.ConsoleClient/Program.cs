@@ -1,5 +1,5 @@
 ﻿using CommandLine;
-using System.Diagnostics;
+using LargeFileSorter.Common;
 
 namespace LargeFileSorter.FileGenerator.ConsoleClient
 {
@@ -14,8 +14,25 @@ namespace LargeFileSorter.FileGenerator.ConsoleClient
 
         private static void Run(Options options)
         {
-            IFileGenerator fileGenerator = new TempFilesFileGenerator();
-            fileGenerator.GenerateFile(options.OutputDirectory, options.OutputFile, options.TargetSizeBytes);
+            if (string.IsNullOrEmpty(options.OutputDirectory))
+            {
+                options.OutputDirectory = Environment.CurrentDirectory;
+            }
+
+            long availableSpace = MemoryUtils.GetAvailableDiskSpace(options.OutputDirectory);
+            long requestendSpace = (long)(options.TargetSizeBytes * 1.5);
+            if (availableSpace < requestendSpace)
+            {
+                Console.WriteLine($"I can't generate the file. " +
+                    $"This file requires approximately {StringUtils.GetHumanReadableSize(requestendSpace)} to generate. " +
+                    $"Currently available: {StringUtils.GetHumanReadableSize(availableSpace)}");
+                return;
+            }
+            else
+            {
+                IFileGenerator fileGenerator = new TempFilesFileGenerator();
+                fileGenerator.GenerateFile(options.OutputDirectory, options.OutputFile, options.TargetSizeBytes);
+            }
         }
     }
 }

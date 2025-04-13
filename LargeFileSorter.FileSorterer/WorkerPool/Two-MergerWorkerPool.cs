@@ -1,51 +1,12 @@
-﻿
-using LargeFileSorter.Common;
-
-namespace LargeFileSorter.FileSorterer.WorkerPool
+﻿namespace LargeFileSorter.FileSorterer.WorkerPool
 {
-    class MergerWorkerPool : BaseWorkerPool
+    class MergerWorkerPool : BaseMergerWorkerPool
     {
-        protected readonly PriorityQueue<FileInfo, long> _tasks = new PriorityQueue<FileInfo, long>();
-
-        public FileInfo ResultFile { get; protected set; }
-
         private Action<FileInfo, FileInfo> _handler;
 
         public MergerWorkerPool(int maxThreads, Action<FileInfo, FileInfo> handler, CancellationTokenSource? cts = null) : base(maxThreads, cts)
         {
             _handler = handler;
-        }
-
-        public void EnqueuTask(FileInfo path)
-        {
-            lock (_locker)
-            {
-                _tasks.Enqueue(path, path.Length);
-
-                if (_activeThreads == 0)
-                {
-                    StartWorker();
-                }
-            }
-
-            _evt.Set();
-
-            if (_activeThreads < _maxThreads && _tasks.Count > 0)
-            {
-                lock (_locker)
-                {
-                    if (_activeThreads < _maxThreads && _tasks.Count > 0)
-                    {
-                        StartWorker();
-                    }
-                }
-            }
-        }
-
-        public override async Task StopAsync()
-        {
-            await base.StopAsync();
-            ResultFile = _tasks.Dequeue();
         }
 
         protected override void WorkerLoop()
@@ -61,7 +22,7 @@ namespace LargeFileSorter.FileSorterer.WorkerPool
 
                     lock (_locker)
                     {
-                        if (_tasks.Count >= 2)
+                        if (_tasks.Count >= _minFilesToMerge)
                         {
                             file1 = _tasks.Dequeue();
                             file2 = _tasks.Dequeue();
@@ -71,7 +32,7 @@ namespace LargeFileSorter.FileSorterer.WorkerPool
 
                     if (file1 != null && file2 != null)
                     {
-                        if (count >= 2)
+                        if (count >= _minFilesToMerge)
                         {
                             _evt.Set();
                         }

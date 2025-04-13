@@ -2,7 +2,7 @@
   "profiles": {
     "LargeFileSorter.FileGenerator.ConsoleClient": {
       "commandName": "Project",
-      "commandLineArgs": "-s 5Gb -d \"H:\\Test\" -f \"smallFile.txt\""
+      "commandLineArgs": "-s 1000Tb -d \"H:\\Test\" -f \"WTFGbFile.txt\""
     }
   }
 }
