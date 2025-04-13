@@ -38,10 +38,11 @@ namespace LargeFileSorter.FileSorterer.ConsoleClient
             }
             else
             {
+                Console.WriteLine($"Sorting has been started ...");
                 Stopwatch sw = Stopwatch.StartNew();
                 var sorterer = new SimpleFileSorterer();
                 sorterer.SortFileAsync(options.Input, options.OutputDir, options.OutputFile).GetAwaiter().GetResult();
-                Console.WriteLine(sw.ElapsedMilliseconds);
+                Console.WriteLine($"Sorting has been completed in {sw.ElapsedMilliseconds} ms");
             }
         }
     }
