@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "LargeFileSorter.FileGenerator.ConsoleClient": {
-      "commandName": "Project",
-      "commandLineArgs": "-s 1000Tb -d \"H:\\Test\" -f \"WTFGbFile.txt\""
-    }
-  }
-}

@@ -30,8 +30,10 @@ namespace LargeFileSorter.FileGenerator.ConsoleClient
             }
             else
             {
+                Console.WriteLine($"Generating has been started...");
                 IFileGenerator fileGenerator = new TempFilesFileGenerator();
-                fileGenerator.GenerateFile(options.OutputDirectory, options.OutputFile, options.TargetSizeBytes);
+                FileInfo file = fileGenerator.GenerateFile(options.OutputDirectory, options.OutputFile, options.TargetSizeBytes);
+                Console.WriteLine($"You can find the file here: {file.FullName} ({StringUtils.GetHumanReadableSize(file.Length)})");
             }
         }
     }

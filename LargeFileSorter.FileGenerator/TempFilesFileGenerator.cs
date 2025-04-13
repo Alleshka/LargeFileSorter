@@ -8,7 +8,7 @@ namespace LargeFileSorter.FileGenerator
         private int BufferSize = MemoryUtils.SmallBufferSize;
         private IRowGenerator _rowGenerator = new SimpleRowGenerator();
 
-        public void GenerateFile(string directory = "", string fileName = "largeFile.txt", long targetFileSizeBytes = 1024, int maxThreadsCount = 0)
+        public FileInfo GenerateFile(string directory = "", string fileName = "largeFile.txt", long targetFileSizeBytes = 1024, int maxThreadsCount = 0)
         {
             if (maxThreadsCount <= 0 || maxThreadsCount >= Environment.ProcessorCount)
             {
@@ -17,8 +17,9 @@ namespace LargeFileSorter.FileGenerator
 
             DirectoryInfo tmpDir = Directory.CreateDirectory(Path.Combine(directory, "tmp"));
             GenerateTempFiles(tmpDir, targetFileSizeBytes, maxThreadsCount);
-            MergeTempFiles(tmpDir, Path.Combine(directory, fileName));
+            FileInfo result = MergeTempFiles(tmpDir, Path.Combine(directory, fileName));
             tmpDir.Delete();
+            return result;
         }
 
         private void GenerateTempFiles(DirectoryInfo tmpDir, long targetFileSizeBytes, int maxThreadsCount)
@@ -44,7 +45,7 @@ namespace LargeFileSorter.FileGenerator
             });
         }
 
-        private void MergeTempFiles(DirectoryInfo tmpDir, string resultFilePath)
+        private FileInfo MergeTempFiles(DirectoryInfo tmpDir, string resultFilePath)
         {
             using (FileStream fileWriter = new FileStream(resultFilePath, FileMode.Create))
             {
@@ -58,6 +59,8 @@ namespace LargeFileSorter.FileGenerator
                     File.Delete(part);
                 }
             }
+
+            return new FileInfo(resultFilePath);
         }
     }
 }
