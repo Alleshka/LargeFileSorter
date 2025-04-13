@@ -15,11 +15,6 @@ namespace LargeFileSorter.FileGenerator
                 maxThreadsCount = Environment.ProcessorCount;
             }
 
-            if (string.IsNullOrEmpty(directory))
-            {
-                directory = Environment.CurrentDirectory;
-            }
-
             DirectoryInfo tmpDir = Directory.CreateDirectory(Path.Combine(directory, "tmp"));
             GenerateTempFiles(tmpDir, targetFileSizeBytes, maxThreadsCount);
             MergeTempFiles(tmpDir, Path.Combine(directory, fileName));

@@ -1,5 +1,6 @@
 ﻿using LargeFileSorter.Common;
 using LargeFileSorter.FileSorterer.WorkerPool;
+using System;
 using System.Text;
 
 namespace LargeFileSorter.FileSorterer
@@ -7,7 +8,8 @@ namespace LargeFileSorter.FileSorterer
     public class SimpleFileSorterer : IFileSorterer
     {
         private SorterWorkerPool _sorterWorker;
-        private MergerWorkerPool _mergerWorker;
+        private BaseMergerWorkerPool _mergerWorker;
+
 
         public async Task SortFileAsync(string input, string outputDir = "", string outputFile = "sortResult.txt", long chunkSize = 0)
         {
@@ -21,10 +23,13 @@ namespace LargeFileSorter.FileSorterer
             string oututPath = Path.Combine(outputDir, outputFile);
 
             Directory.CreateDirectory(tmpDir);
-            _sorterWorker = new SorterWorkerPool(Environment.ProcessorCount * 2, (chunk) => SortChunk(tmpDir, chunk));
-            _mergerWorker = new MergerWorkerPool(Environment.ProcessorCount, (file1, file2) => MergeFiles(tmpDir, file1, file2));
-            await reader;
 
+            _sorterWorker = new SorterWorkerPool(Environment.ProcessorCount * 2, (chunk) => SortChunk(tmpDir, chunk));
+            _mergerWorker = false
+                ? new MergerWorkerPool(Environment.ProcessorCount, (file1, file2) => MergeFiles(tmpDir, file1, file2))
+                : new K_MergerWorkerPool(Environment.ProcessorCount, (list) => KMergeFiles(tmpDir, list), 6);
+
+            await reader;
             await _sorterWorker.StopAsync();
             await _mergerWorker.StopAsync();
 
@@ -149,6 +154,68 @@ namespace LargeFileSorter.FileSorterer
 
             file1.Delete();
             file2.Delete();
+            _mergerWorker.EnqueuTask(new FileInfo(outputFile));
+        }
+
+        private void KMergeFiles(string tmpDir, List<FileInfo> files)
+        {
+            int bufferSize = MemoryUtils.SmallBufferSize;
+            string fileName = $"merged-part-{Guid.NewGuid()}";
+            string outputFile = Path.Combine(tmpDir, fileName);
+
+            //Console.WriteLine($"Merge {files.Count} files into {outputFile} ({Thread.CurrentThread.ManagedThreadId})");
+            //Console.WriteLine(string.Join(Environment.NewLine, files.Select(x => $"\t{x.FullName}")));
+
+            var queue = new PriorityQueue<(FileLine line, StreamReader reader), ComparableFileLine>();
+
+            using (StreamWriter writer = new StreamWriter(outputFile, false, Encoding.UTF8, bufferSize))
+            {
+                var readers = files.Select(x => new StreamReader(x.FullName, Encoding.UTF8, true, bufferSize)).ToList();
+                foreach (var reader in readers)
+                {
+                    FileLine? line = FileLine.Parse(reader.ReadLine());
+                    if (line != null)
+                    {
+                        queue.Enqueue((line, reader), new ComparableFileLine(line));
+                    }
+                }
+
+                while (queue.Count > 1)
+                {
+                    (FileLine minLine, StreamReader reader) = queue.Dequeue();
+                    writer.WriteLine(minLine);
+                    FileLine? line = FileLine.Parse(reader.ReadLine());
+                    if (line != null)
+                    {
+                        queue.Enqueue((line, reader), new ComparableFileLine(line));
+                    }
+                }
+
+                if (queue.Count == 1)
+                {
+                    (FileLine minLine, StreamReader reader) = queue.Dequeue();
+                    writer.WriteLine(minLine);
+
+                    char[] buffer = new char[bufferSize];
+                    int charsRead;
+                    while ((charsRead = reader.Read(buffer, 0, buffer.Length)) > 0)
+                    {
+                        writer.Write(buffer, 0, charsRead);
+                    }
+                }
+
+                foreach (var reader in readers)
+                {
+                    reader.Close();
+                    reader.Dispose();
+                }
+
+                foreach (var file in files)
+                {
+                    file.Delete();
+                }
+            }
+
             _mergerWorker.EnqueuTask(new FileInfo(outputFile));
         }
     }

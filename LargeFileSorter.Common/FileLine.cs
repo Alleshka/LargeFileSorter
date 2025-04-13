@@ -13,7 +13,7 @@ namespace LargeFileSorter.Common
             String = s;
         }
 
-        public static FileLine? Parse(string input)
+        public static FileLine? Parse(string? input)
         {
             if (string.IsNullOrWhiteSpace(input)) return null;
 

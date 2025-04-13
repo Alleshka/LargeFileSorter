@@ -1,4 +1,5 @@
 ﻿using CommandLine;
+using LargeFileSorter.Common;
 using System.Diagnostics;
 
 namespace LargeFileSorter.FileSorterer.ConsoleClient
@@ -19,10 +20,29 @@ namespace LargeFileSorter.FileSorterer.ConsoleClient
                 options.OutputDir = Environment.CurrentDirectory;
             }
 
-            Stopwatch sw = Stopwatch.StartNew();
-            var sorterer = new SimpleFileSorterer();
-            sorterer.SortFileAsync(options.Input, options.OutputDir, options.OutputFile).GetAwaiter().GetResult();
-            Console.WriteLine(sw.ElapsedMilliseconds);
+            var fileInfo = new FileInfo(options.Input);
+            if (string.IsNullOrWhiteSpace(options.OutputFile))
+            {
+                options.OutputFile = "Sorted_" + fileInfo.Name;
+            }
+
+            long availableSpace = MemoryUtils.GetAvailableDiskSpace(options.OutputDir);
+            long requestendSpace = fileInfo.Length * 2; // We need 2x file space to merge files
+
+            if (availableSpace < requestendSpace)
+            {
+                Console.WriteLine($"I can't sort the file. " +
+                    $"This file requires approximately {StringUtils.GetHumanReadableSize(requestendSpace)} to sort. " +
+                    $"Currently available: {StringUtils.GetHumanReadableSize(availableSpace)}");
+                return;
+            }
+            else
+            {
+                Stopwatch sw = Stopwatch.StartNew();
+                var sorterer = new SimpleFileSorterer();
+                sorterer.SortFileAsync(options.Input, options.OutputDir, options.OutputFile).GetAwaiter().GetResult();
+                Console.WriteLine(sw.ElapsedMilliseconds);
+            }
         }
     }
 }

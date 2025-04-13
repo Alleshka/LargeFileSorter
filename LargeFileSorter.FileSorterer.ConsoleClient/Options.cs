@@ -10,7 +10,7 @@ namespace LargeFileSorter.FileSorterer.ConsoleClient
         [Option('d', "dir", HelpText = "Output dir")]
         public string OutputDir { get; set; }
 
-        [Option('f', "file", HelpText = "Output file", Default = "largeFileSorted.txt")]
+        [Option('f', "file", HelpText = "Output file", Default = "")]
         public string OutputFile { get; set; }
     }
 }
